@@ -68,11 +68,19 @@ def calculate_source_velocity(trend: RawTrend) -> float:
         return round(min(100.0, max(0.0, score)), 2)
 
 
-def score_candidate(trend: RawTrend, min_threshold: Optional[float] = None) -> ScoredTrend:
+def score_candidate(
+    trend: RawTrend,
+    min_threshold: Optional[float] = None,
+    breaking_threshold: Optional[float] = None,
+    breaking_max_age: Optional[float] = None,
+) -> ScoredTrend:
     """Evaluate and convert a RawTrend into a ScoredTrend candidate."""
     threshold = min_threshold if min_threshold is not None else settings.MIN_VELOCITY_SCORE
+    vel_breaking_threshold = breaking_threshold if breaking_threshold is not None else settings.BREAKING_VELOCITY_THRESHOLD
+    max_age_breaking = breaking_max_age if breaking_max_age is not None else settings.BREAKING_MAX_AGE_HOURS
+
     velocity = calculate_source_velocity(trend)
-    is_breaking = velocity >= 75.0 and trend.age_in_hours <= 2.0
+    is_breaking = velocity >= vel_breaking_threshold and trend.age_in_hours <= max_age_breaking
 
     if velocity >= threshold:
         status = "qualified"
@@ -144,18 +152,20 @@ def are_trends_similar(
 
 def merge_cross_source_trends(
     trends: List[ScoredTrend],
-    threshold: Optional[float] = None
+    threshold: Optional[float] = None,
+    cross_source_boost: Optional[float] = None,
 ) -> List[ScoredTrend]:
     """Cluster and merge candidate trends across different data sources.
 
     When both Google Trends and Reddit or HN report the same breaking story:
     1. Cross-source mentions are tracked.
-    2. A multi-platform momentum boost (+15 velocity points) is applied.
+    2. A multi-platform momentum boost is applied.
     3. The richest summary and primary link are retained.
     """
     if not trends:
         return []
 
+    boost = cross_source_boost if cross_source_boost is not None else settings.CROSS_SOURCE_BOOST
     merged: List[ScoredTrend] = []
 
     for candidate in sorted(trends, key=lambda t: t.velocity_score, reverse=True):
@@ -167,8 +177,8 @@ def merge_cross_source_trends(
                 # Add cross-source attribution if distinct
                 if candidate.source not in existing.cross_source_mentions:
                     existing.cross_source_mentions.append(candidate.source)
-                    # Multi-source momentum boost (+15 points, max 100)
-                    existing.velocity_score = min(100.0, round(existing.velocity_score + 15.0, 2))
+                    # Multi-source momentum boost (max 100)
+                    existing.velocity_score = min(100.0, round(existing.velocity_score + boost, 2))
 
                 # Combine summary if candidate offers richer information
                 if (not existing.summary or len(existing.summary) < 50) and candidate.summary:

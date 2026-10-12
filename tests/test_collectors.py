@@ -114,3 +114,23 @@ async def test_reddit_collector_without_credentials_skips_cleanly():
     collector = RedditCollector(client_id="", client_secret="")
     trends = await collector.fetch_trends()
     assert trends == []
+
+
+def test_collector_custom_configurations():
+    google = GoogleTrendsCollector(geo="UK", user_agent="CustomAgent/1.0", timeout=25.0)
+    assert google.geo == "UK"
+    assert google.user_agent == "CustomAgent/1.0"
+    assert google.timeout == 25.0
+
+    hn = HackerNewsCollector(top_limit=50, min_score=200, max_age_hours=6.0, concurrency=20, timeout=30.0)
+    assert hn.top_limit == 50
+    assert hn.min_score == 200
+    assert hn.max_age_hours == 6.0
+    assert hn.concurrency == 20
+    assert hn.timeout == 30.0
+
+    custom_cats = {"localllama": "ai"}
+    reddit = RedditCollector(category_map=custom_cats, post_limit=10)
+    assert reddit.category_map == custom_cats
+    assert reddit.post_limit == 10
+

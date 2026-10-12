@@ -38,6 +38,8 @@ class IngestionPipeline:
         deduplicator: Optional[Deduplicator] = None,
         min_velocity: Optional[float] = None,
         top_limit: Optional[int] = None,
+        similarity_threshold: Optional[float] = None,
+        cross_source_boost: Optional[float] = None,
     ) -> None:
         self.collectors = collectors if collectors is not None else [
             GoogleTrendsCollector(),
@@ -47,6 +49,12 @@ class IngestionPipeline:
         self.deduplicator = deduplicator or Deduplicator()
         self.min_velocity = min_velocity if min_velocity is not None else settings.MIN_VELOCITY_SCORE
         self.top_limit = top_limit or settings.TOP_TRENDS_LIMIT
+        self.similarity_threshold = (
+            similarity_threshold if similarity_threshold is not None else settings.SIMILARITY_THRESHOLD
+        )
+        self.cross_source_boost = (
+            cross_source_boost if cross_source_boost is not None else settings.CROSS_SOURCE_BOOST
+        )
 
     async def run(self) -> IngestionResult:
         """Execute one complete ingestion and filtering cycle.
@@ -113,7 +121,11 @@ class IngestionPipeline:
                 velocity_candidates.append(scored)
 
         # 5. Cross-Source Merging (RapidFuzz fusion)
-        merged_candidates = merge_cross_source_trends(velocity_candidates)
+        merged_candidates = merge_cross_source_trends(
+            velocity_candidates,
+            threshold=self.similarity_threshold,
+            cross_source_boost=self.cross_source_boost,
+        )
 
         # 6. Rank by Velocity Score and take Top N
         merged_candidates.sort(key=lambda t: t.velocity_score, reverse=True)

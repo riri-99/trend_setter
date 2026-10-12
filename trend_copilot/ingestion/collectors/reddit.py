@@ -36,12 +36,14 @@ class RedditCollector(BaseCollector):
         user_agent: Optional[str] = None,
         subreddits: Optional[List[str]] = None,
         post_limit: Optional[int] = None,
+        category_map: Optional[Dict[str, str]] = None,
     ) -> None:
         self.client_id = client_id or settings.REDDIT_CLIENT_ID
         self.client_secret = client_secret or settings.REDDIT_CLIENT_SECRET
         self.user_agent = user_agent or settings.REDDIT_USER_AGENT
         self.subreddits = subreddits or settings.REDDIT_SUBREDDITS
         self.post_limit = post_limit or settings.REDDIT_POST_LIMIT
+        self.category_map = category_map or SUBREDDIT_CATEGORY_MAP
 
     @property
     def source_name(self) -> str:
@@ -54,7 +56,7 @@ class RedditCollector(BaseCollector):
     def _fetch_subreddit_posts(self, reddit: praw.Reddit, sub_name: str) -> List[RawTrend]:
         """Synchronous fetch executed inside an asyncio worker thread."""
         trends: List[RawTrend] = []
-        category = SUBREDDIT_CATEGORY_MAP.get(sub_name.lower(), "general")
+        category = self.category_map.get(sub_name.lower(), "general")
 
         try:
             subreddit = reddit.subreddit(sub_name)

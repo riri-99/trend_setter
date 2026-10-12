@@ -65,10 +65,14 @@ def get_db_path(db_path: Optional[Path | str] = None) -> Path:
 
 
 @contextmanager
-def get_connection(db_path: Optional[Path | str] = None) -> Generator[sqlite3.Connection, None, None]:
+def get_connection(
+    db_path: Optional[Path | str] = None,
+    timeout: Optional[float] = None,
+) -> Generator[sqlite3.Connection, None, None]:
     """Context manager yielding a SQLite connection with WAL mode and foreign keys enabled."""
     path = get_db_path(db_path)
-    conn = sqlite3.connect(path, timeout=10.0, check_same_thread=False)
+    conn_timeout = timeout if timeout is not None else settings.DB_TIMEOUT_SECONDS
+    conn = sqlite3.connect(path, timeout=conn_timeout, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     try:
         conn.execute("PRAGMA journal_mode=WAL;")

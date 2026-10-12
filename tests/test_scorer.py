@@ -124,3 +124,39 @@ def test_merge_cross_source_trends():
     winner = merged[0]
     assert len(winner.cross_source_mentions) >= 2
     assert "google_trends" in winner.cross_source_mentions
+
+
+def test_breaking_threshold_customization():
+    pub = datetime.now(timezone.utc) - timedelta(hours=3)
+    raw = RawTrend(
+        source="google_trends",
+        title="Breaking Tech Launch",
+        raw_score=180000.0,
+        published_at=pub,
+    )
+    # Default breaking max age is 2.0h, so age 3.0h is not breaking by default
+    scored_default = score_candidate(raw)
+    assert scored_default.is_breaking is False
+
+    # With custom breaking_max_age=4.0h and lower breaking_threshold=70.0
+    scored_custom = score_candidate(raw, breaking_threshold=70.0, breaking_max_age=4.0)
+    assert scored_custom.is_breaking is True
+
+
+def test_merge_cross_source_custom_boost():
+    pub = datetime.now(timezone.utc)
+    t1 = score_candidate(
+        RawTrend(source="google_trends", title="Quantum Computing Breakthrough", raw_score=100000.0, published_at=pub),
+        min_threshold=10.0,
+    )
+    t2 = score_candidate(
+        RawTrend(source="reddit", title="Quantum Computing Breakthrough discussion", raw_score=50.0, published_at=pub),
+        min_threshold=10.0,
+    )
+
+    base_velocity = t1.velocity_score
+    custom_boost = 25.0
+    merged = merge_cross_source_trends([t1, t2], threshold=70.0, cross_source_boost=custom_boost)
+    assert len(merged) == 1
+    assert merged[0].velocity_score == min(100.0, base_velocity + custom_boost)
+

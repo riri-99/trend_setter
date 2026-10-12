@@ -57,8 +57,15 @@ def parse_pub_date(pub_date_str: Optional[str]) -> datetime:
 class GoogleTrendsCollector(BaseCollector):
     """Fetches trending search queries from Google Trends RSS."""
 
-    def __init__(self, geo: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        geo: Optional[str] = None,
+        user_agent: Optional[str] = None,
+        timeout: Optional[float] = None,
+    ) -> None:
         self.geo = geo or settings.GOOGLE_TRENDS_GEO
+        self.user_agent = user_agent or settings.GOOGLE_TRENDS_USER_AGENT
+        self.timeout = timeout if timeout is not None else settings.REQUEST_TIMEOUT_SECONDS
 
     @property
     def source_name(self) -> str:
@@ -70,12 +77,12 @@ class GoogleTrendsCollector(BaseCollector):
         trends: List[RawTrend] = []
 
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "User-Agent": self.user_agent,
             "Accept": "application/rss+xml, application/xml, text/xml",
         }
 
         try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.get(url, headers=headers)
                 response.raise_for_status()
                 xml_content = response.text

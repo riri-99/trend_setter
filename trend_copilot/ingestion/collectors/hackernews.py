@@ -27,10 +27,14 @@ class HackerNewsCollector(BaseCollector):
         top_limit: Optional[int] = None,
         min_score: Optional[int] = None,
         max_age_hours: Optional[float] = None,
+        concurrency: Optional[int] = None,
+        timeout: Optional[float] = None,
     ) -> None:
         self.top_limit = top_limit or settings.HACKERNEWS_TOP_STORIES_LIMIT
         self.min_score = min_score if min_score is not None else settings.HACKERNEWS_MIN_SCORE
         self.max_age_hours = max_age_hours if max_age_hours is not None else settings.HACKERNEWS_MAX_AGE_HOURS
+        self.concurrency = concurrency or settings.HACKERNEWS_CONCURRENCY
+        self.timeout = timeout if timeout is not None else settings.REQUEST_TIMEOUT_SECONDS
 
     @property
     def source_name(self) -> str:
@@ -41,7 +45,7 @@ class HackerNewsCollector(BaseCollector):
         url = HN_ITEM_URL.format(item_id=item_id)
         async with semaphore:
             try:
-                res = await client.get(url, timeout=10.0)
+                res = await client.get(url, timeout=self.timeout)
                 if res.status_code == 200:
                     return res.json()
             except Exception as err:
@@ -53,12 +57,12 @@ class HackerNewsCollector(BaseCollector):
         trends: List[RawTrend] = []
 
         try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
                 res = await client.get(HN_TOP_STORIES_URL)
                 res.raise_for_status()
                 top_ids: List[int] = res.json()[: self.top_limit]
 
-                semaphore = asyncio.Semaphore(10)
+                semaphore = asyncio.Semaphore(self.concurrency)
                 tasks = [self._fetch_item(client, semaphore, item_id) for item_id in top_ids]
                 items = await asyncio.gather(*tasks)
 

@@ -41,6 +41,30 @@ class Settings(BaseSettings):
         description="Fuzzy string similarity threshold (0-100) to merge overlapping trends."
     )
 
+    # Scoring & Merging Thresholds
+    BREAKING_VELOCITY_THRESHOLD: float = Field(
+        default=75.0,
+        description="Minimum velocity score required to flag a trend as breaking."
+    )
+    BREAKING_MAX_AGE_HOURS: float = Field(
+        default=2.0,
+        description="Maximum age in hours for a trend to qualify as breaking."
+    )
+    CROSS_SOURCE_BOOST: float = Field(
+        default=15.0,
+        description="Bonus velocity score applied when a trend is detected across multiple platforms."
+    )
+
+    # Network & Storage Settings
+    REQUEST_TIMEOUT_SECONDS: float = Field(
+        default=15.0,
+        description="Default timeout in seconds for HTTP network requests."
+    )
+    DB_TIMEOUT_SECONDS: float = Field(
+        default=10.0,
+        description="SQLite database connection timeout in seconds."
+    )
+
     # Google Trends Collector Settings
     GOOGLE_TRENDS_GEO: str = Field(
         default="US",
@@ -49,6 +73,10 @@ class Settings(BaseSettings):
     GOOGLE_TRENDS_RSS_URL: str = Field(
         default="https://trends.google.com/trending/rss?geo={geo}",
         description="Template URL for Google Trends RSS feed."
+    )
+    GOOGLE_TRENDS_USER_AGENT: str = Field(
+        default="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        description="User-Agent string for Google Trends RSS requests."
     )
 
     # Reddit Collector Settings
@@ -79,6 +107,10 @@ class Settings(BaseSettings):
     HACKERNEWS_MAX_AGE_HOURS: float = Field(
         default=4.0,
         description="Maximum age in hours for Hacker News stories."
+    )
+    HACKERNEWS_CONCURRENCY: int = Field(
+        default=10,
+        description="Max concurrent item requests for Hacker News API."
     )
 
 
