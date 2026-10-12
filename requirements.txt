@@ -1,0 +1,11 @@
+# Trend Copilot - Dependency Specifications
+pydantic>=2.10.0
+pydantic-settings>=2.7.0
+python-dotenv>=1.0.0
+httpx>=0.28.0
+feedparser>=6.0.11
+beautifulsoup4>=4.12.0
+praw>=7.7.0
+rapidfuzz>=3.9.0
+pytest>=8.0.0
+pytest-asyncio>=0.24.0
